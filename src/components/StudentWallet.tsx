@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Wallet, ExternalLink, FileText, Share2, Calendar, Building2, Loader2 } from 'lucide-react';
+import { Wallet, ExternalLink, FileText, Share2, Calendar, Building2, Loader2, History } from 'lucide-react';
 import { Credential } from '../types/credential';
-import { connectWallet, getStudentCredentials } from '../utils/blockchain';
+import { connectWallet, getStudentCredentials, switchToSepolia } from '../utils/blockchain';
 import { getIPFSUrl } from '../utils/ipfs';
+import { getCredentialsByStudent, CredentialRecord } from '../utils/supabase';
 import QRCodeModal from './QRCodeModal';
+import CredentialSharing from './CredentialSharing';
+import AuditTrail from './AuditTrail';
 
 export default function StudentWallet() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
+  const [shareCredential, setShareCredential] = useState<CredentialRecord | null>(null);
+  const [viewAuditCredential, setViewAuditCredential] = useState<string | null>(null);
+  const [dbCredentials, setDbCredentials] = useState<CredentialRecord[]>([]);
 
   useEffect(() => {
     checkWalletConnection();
@@ -35,6 +41,7 @@ export default function StudentWallet() {
       const address = await connectWallet();
       if (address) {
         setWalletAddress(address);
+        await switchToSepolia();
         loadCredentials(address);
       }
     } catch (error) {
@@ -49,6 +56,8 @@ export default function StudentWallet() {
     try {
       const creds = await getStudentCredentials(address);
       setCredentials(creds);
+      const dbCreds = await getCredentialsByStudent(address);
+      setDbCredentials(dbCreds);
     } catch (error) {
       console.error('Error loading credentials:', error);
     } finally {
@@ -158,23 +167,47 @@ export default function StudentWallet() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <a
-                    href={getIPFSUrl(credential.ipfsHash)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    View
-                  </a>
-                  <button
-                    onClick={() => setSelectedCredential(credential)}
-                    className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <Share2 className="w-4 h-4 mr-1" />
-                    Share
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <a
+                      href={getIPFSUrl(credential.ipfsHash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      View
+                    </a>
+                    <button
+                      onClick={() => setSelectedCredential(credential)}
+                      className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center"
+                    >
+                      <Share2 className="w-4 h-4 mr-1" />
+                      QR
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const dbCred = dbCredentials.find(c => c.token_id === credential.tokenId);
+                        if (dbCred) setShareCredential(dbCred);
+                      }}
+                      className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
+                    >
+                      <Share2 className="w-4 h-4 mr-1" />
+                      Share Link
+                    </button>
+                    <button
+                      onClick={() => {
+                        const dbCred = dbCredentials.find(c => c.token_id === credential.tokenId);
+                        if (dbCred) setViewAuditCredential(dbCred.id);
+                      }}
+                      className="flex-1 bg-purple-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center justify-center"
+                    >
+                      <History className="w-4 h-4 mr-1" />
+                      History
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -187,6 +220,51 @@ export default function StudentWallet() {
           credential={selectedCredential}
           onClose={() => setSelectedCredential(null)}
         />
+      )}
+
+      {shareCredential && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Share Credential</h2>
+                <button
+                  onClick={() => setShareCredential(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <CredentialSharing
+                credentialId={shareCredential.id}
+                credentialTitle={shareCredential.degree}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewAuditCredential && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Credential History</h2>
+                <button
+                  onClick={() => setViewAuditCredential(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <AuditTrail credentialId={viewAuditCredential} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

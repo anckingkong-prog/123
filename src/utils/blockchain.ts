@@ -134,13 +134,13 @@ export const getCurrentNetwork = async (): Promise<{ name: string; chainId: numb
   }
 };
 
-export const switchToPolygonMumbai = async (): Promise<boolean> => {
+export const switchToSepolia = async (): Promise<boolean> => {
   if (!window.ethereum) return false;
 
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0x13881' }],
+      params: [{ chainId: '0xaa36a7' }],
     });
     return true;
   } catch (switchError: any) {
@@ -150,15 +150,15 @@ export const switchToPolygonMumbai = async (): Promise<boolean> => {
           method: 'wallet_addEthereumChain',
           params: [
             {
-              chainId: '0x13881',
-              chainName: 'Polygon Mumbai Testnet',
+              chainId: '0xaa36a7',
+              chainName: 'Sepolia Testnet',
               nativeCurrency: {
-                name: 'MATIC',
-                symbol: 'MATIC',
+                name: 'Sepolia ETH',
+                symbol: 'ETH',
                 decimals: 18,
               },
-              rpcUrls: ['https://rpc-mumbai.maticvigil.com/'],
-              blockExplorerUrls: ['https://mumbai.polygonscan.com/'],
+              rpcUrls: ['https://rpc.sepolia.org/'],
+              blockExplorerUrls: ['https://sepolia.etherscan.io/'],
             },
           ],
         });

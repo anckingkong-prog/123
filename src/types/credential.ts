@@ -17,4 +17,4 @@ export interface IssuanceFormData {
   document: File | null;
 }
 
-export type PageView = 'institution' | 'student' | 'verify';
+export type PageView = 'landing' | 'institution' | 'student' | 'verify';

@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { Upload, CheckCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Upload, CheckCircle, Loader2, TrendingUp, Award, Users } from 'lucide-react';
 import { IssuanceFormData } from '../types/credential';
 import { uploadToIPFS } from '../utils/ipfs';
-import { issueCredential } from '../utils/blockchain';
+import { issueCredential, connectWallet, switchToSepolia } from '../utils/blockchain';
+import { saveCredential, getInstitutionStats } from '../utils/supabase';
+import BatchIssuance from './BatchIssuance';
 
 export default function InstitutionDashboard() {
   const [formData, setFormData] = useState<IssuanceFormData>({
@@ -17,6 +19,34 @@ export default function InstitutionDashboard() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<{ tokenId: string; txHash: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [showBatch, setShowBatch] = useState(false);
+  const [stats, setStats] = useState({ totalIssued: 0, totalRevoked: 0, recentIssued: 0 });
+
+  useEffect(() => {
+    initWallet();
+  }, []);
+
+  useEffect(() => {
+    if (walletAddress) {
+      loadStats();
+    }
+  }, [walletAddress]);
+
+  const initWallet = async () => {
+    const address = await connectWallet();
+    if (address) {
+      setWalletAddress(address);
+      await switchToSepolia();
+    }
+  };
+
+  const loadStats = async () => {
+    if (walletAddress) {
+      const institutionStats = await getInstitutionStats(walletAddress);
+      setStats(institutionStats);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -48,6 +78,19 @@ export default function InstitutionDashboard() {
         formData.institution
       );
 
+      if (walletAddress) {
+        await saveCredential(
+          result.tokenId,
+          formData.studentAddress,
+          formData.institution,
+          walletAddress,
+          `${formData.degree} (${formData.graduationYear})`,
+          ipfsHash,
+          new Date()
+        );
+        await loadStats();
+      }
+
       setSuccess(result);
       setFormData({
         studentName: '',
@@ -69,9 +112,74 @@ export default function InstitutionDashboard() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Issue Academic Credential</h2>
+    <div className="max-w-6xl mx-auto">
+      {walletAddress && (
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Total Issued</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalIssued}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Award className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Recent (30 days)</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.recentIssued}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Active</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalIssued - stats.totalRevoked}</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Users className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-6 flex justify-center space-x-4">
+        <button
+          onClick={() => setShowBatch(false)}
+          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+            !showBatch ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Single Issuance
+        </button>
+        <button
+          onClick={() => setShowBatch(true)}
+          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+            showBatch ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Batch Issuance
+        </button>
+      </div>
+
+      {showBatch ? (
+        walletAddress && formData.institution && (
+          <BatchIssuance
+            institutionName={formData.institution}
+            institutionAddress={walletAddress}
+          />
+        )
+      ) : (
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Issue Academic Credential</h2>
 
         {success && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -81,7 +189,7 @@ export default function InstitutionDashboard() {
                 <h3 className="text-sm font-semibold text-green-900 mb-1">Credential Issued Successfully</h3>
                 <p className="text-sm text-green-700 mb-2">Token ID: {success.tokenId}</p>
                 <a
-                  href={`https://mumbai.polygonscan.com/tx/${success.txHash}`}
+                  href={`https://sepolia.etherscan.io/tx/${success.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-green-600 hover:text-green-800 underline"
@@ -221,6 +329,7 @@ export default function InstitutionDashboard() {
           </button>
         </form>
       </div>
+      )}
     </div>
   );
 }
