@@ -4,7 +4,6 @@ import { IssuanceFormData } from '../types/credential';
 import { uploadToIPFS } from '../utils/ipfs';
 import { issueCredential, connectWallet, switchToSepolia } from '../utils/blockchain';
 import { saveCredential, getInstitutionStats } from '../utils/supabase';
-import BatchIssuance from './BatchIssuance';
 
 export default function InstitutionDashboard() {
   const [formData, setFormData] = useState<IssuanceFormData>({
@@ -20,7 +19,6 @@ export default function InstitutionDashboard() {
   const [success, setSuccess] = useState<{ tokenId: string; txHash: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [showBatch, setShowBatch] = useState(false);
   const [stats, setStats] = useState({ totalIssued: 0, totalRevoked: 0, recentIssued: 0 });
 
   useEffect(() => {
@@ -151,34 +149,7 @@ export default function InstitutionDashboard() {
         </div>
       )}
 
-      <div className="mb-6 flex justify-center space-x-4">
-        <button
-          onClick={() => setShowBatch(false)}
-          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-            !showBatch ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          Single Issuance
-        </button>
-        <button
-          onClick={() => setShowBatch(true)}
-          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-            showBatch ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          Batch Issuance
-        </button>
-      </div>
-
-      {showBatch ? (
-        walletAddress && formData.institution && (
-          <BatchIssuance
-            institutionName={formData.institution}
-            institutionAddress={walletAddress}
-          />
-        )
-      ) : (
-        <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="bg-white rounded-lg shadow-lg p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Issue Academic Credential</h2>
 
         {success && (
@@ -329,7 +300,6 @@ export default function InstitutionDashboard() {
           </button>
         </form>
       </div>
-      )}
     </div>
   );
 }

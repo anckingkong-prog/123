@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, Wallet, ShieldCheck, Home } from 'lucide-react';
+import { GraduationCap, Building2, Wallet, ShieldCheck, Home, ArrowRight } from 'lucide-react';
 import LandingPage from './components/LandingPage';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import StudentWallet from './components/StudentWallet';
@@ -17,7 +17,80 @@ function App() {
   }, []);
 
   if (currentView === 'landing') {
-    return <LandingPage onGetStarted={() => setCurrentView('institution')} />;
+    return <LandingPage onGetStarted={() => setCurrentView('selection')} />;
+  }
+
+  if (currentView === 'selection') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 flex items-center justify-center">
+        <div className="max-w-6xl w-full px-4">
+          <div className="text-center mb-12">
+            <div className="flex justify-center mb-6">
+              <GraduationCap className="w-16 h-16 text-blue-600" />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Portal</h1>
+            <p className="text-xl text-gray-600">Select the option that best describes your role</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <button
+              onClick={() => setCurrentView('institution')}
+              className="group p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:-translate-y-1"
+            >
+              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-600 transition-colors">
+                <Building2 className="w-8 h-8 text-blue-600 group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Institution</h3>
+              <p className="text-gray-600 mb-4">Issue and manage academic credentials for your students</p>
+              <div className="flex items-center justify-center text-blue-600 font-semibold">
+                Access Portal
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('student')}
+              className="group p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-green-500 hover:-translate-y-1"
+            >
+              <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:bg-green-600 transition-colors">
+                <Wallet className="w-8 h-8 text-green-600 group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Student</h3>
+              <p className="text-gray-600 mb-4">View and share your academic credentials securely</p>
+              <div className="flex items-center justify-center text-green-600 font-semibold">
+                Access Wallet
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('verify')}
+              className="group p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-purple-500 hover:-translate-y-1"
+            >
+              <div className="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:bg-purple-600 transition-colors">
+                <ShieldCheck className="w-8 h-8 text-purple-600 group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Verifier</h3>
+              <p className="text-gray-600 mb-4">Verify the authenticity of academic credentials instantly</p>
+              <div className="flex items-center justify-center text-purple-600 font-semibold">
+                Start Verification
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
+              </div>
+            </button>
+          </div>
+
+          <div className="text-center mt-12">
+            <button
+              onClick={() => setCurrentView('landing')}
+              className="text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center mx-auto"
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
