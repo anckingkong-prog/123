@@ -1,4 +1,5 @@
-const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlODQwZGYxYi0yMjRiLWViNzUtMmQ5OC0wMThlZDgyNDBkMDYiLCJlbWFpbCI6InNpbmhhYXl1c2htYW40NDRAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjE3Y2FjZjM5NzRlYmY1N2JhMjQ1Iiwic2NvcGVkS2V5U2VjcmV0IjoiYTIwNTAzYmI4Y2M2Njk2NjFhODVlNzEwYmZlYjcxNiIsImV4cCI6MTc2ODU3NDAwNX0.T01cP3EKKTvgz-Xt0N1hMnN3xG-C-Mts7SElXyGYD1E';
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
+const PINATA_GATEWAY = import.meta.env.VITE_PINATA_GATEWAY || 'https://gateway.pinata.cloud';
 
 export interface IPFSUploadResponse {
   IpfsHash: string;
@@ -8,6 +9,10 @@ export interface IPFSUploadResponse {
 
 export const uploadToIPFS = async (file: File): Promise<string> => {
   try {
+    if (!PINATA_JWT) {
+      throw new Error('Pinata JWT not configured. Please check your .env file.');
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -34,7 +39,9 @@ export const uploadToIPFS = async (file: File): Promise<string> => {
     });
 
     if (!response.ok) {
-      throw new Error(`IPFS upload failed: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Pinata API Error:', errorData);
+      throw new Error(`IPFS upload failed: ${response.statusText}${errorData.error ? ' - ' + errorData.error : ''}`);
     }
 
     const data: IPFSUploadResponse = await response.json();
@@ -46,5 +53,5 @@ export const uploadToIPFS = async (file: File): Promise<string> => {
 };
 
 export const getIPFSUrl = (hash: string): string => {
-  return `https://gateway.pinata.cloud/ipfs/${hash}`;
+  return `${PINATA_GATEWAY}/ipfs/${hash}`;
 };
